@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neural Network Configurator - BOSCH ROBOTA SYSTEMS</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.2/p5.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        /* Import Google Fonts */
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap');
+
+        body, html {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            font-family: 'Roboto', sans-serif;
+            color: #e6e6e6;
+            background: #121212;
+            overflow-x: hidden;
+        }
+
+        .main-content {
+            position: relative;
+            z-index: 10;
+            margin: 20px;
+            padding: 20px;
+            background-color: rgba(42, 42, 42, 0.7);
+            border-radius: 15px;
+            box-shadow: 0px 10px 30px rgba(0, 255, 255, 0.3);
+        }
+
+        .configurator {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .config-section {
+            background-color: rgba(18, 18, 18, 0.9);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #0ff;
+            width: 300px;
+        }
+
+        .config-section h2 {
+            color: #0ff;
+            font-size: 20px;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+        }
+
+        .config-section label {
+            display: block;
+            margin: 10px 0 5px;
+            font-size: 16px;
+            color: #e6e6e6;
+        }
+
+        .config-section input,
+        .config-section select {
+            width: 100%;
+            padding: 8px;
+            font-size: 14px;
+            background-color: #1e1e1e;
+            color: #0ff;
+            border: 1px solid #0ff;
+            border-radius: 4px;
+        }
+
+        .config-section button {
+            margin-top: 5px;
+            padding: 8px;
+            width: 100%;
+            background: transparent;
+            border: 2px solid #0ff;
+            color: #0ff;
+            font-size: 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            text-transform: uppercase;
+        }
+
+        .config-section button:hover {
+            background-color: #0ff;
+            color: #121212;
+            box-shadow: 0px 0px 15px rgba(0, 255, 255, 0.8);
+        }
+
+        .neural-visualization {
+            width: 100%;
+            max-width: 1200px;
+            margin: 40px auto;
+            padding: 0;
+            background-color: transparent;
+            text-align: center;
+        }
+
+        .neural-visualization h1 {
+            color: #0ff;
+            font-size: 28px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 20px;
+        }
+
+        .canvas-container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0;
+            overflow: auto;
+            border: 2px solid #0ff;
+            border-radius: 10px;
+            background-color: rgb(18, 18, 18);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        #p5-canvas {
+            display: block;
+            width: 1200px;
+            height: 800px;
+            margin: 0 auto;
+        }
+
+        #certificate-button {
+            display: block;
+            margin: 20px auto;
+            padding: 15px 30px;
+            background: transparent;
+            border: 2px solid #0ff;
+            color: #0ff;
+            font-size: 18px;
+            border-radius: 10px;
+            cursor: pointer;
+            text-transform: uppercase;
+        }
+
+        #certificate-button:hover {
+            background-color: #0ff;
+            color: #121212;
+            box-shadow: 0px 0px 25px rgba(0, 255, 255, 0.8);
+        }
+
+        @media (max-width: 768px) {
+            .config-section {
+                width: 100%;
+            }
+            .neural-visualization,
+            .canvas-container,
+            #p5-canvas {
+                width: 100%;
+                max-width: 100%;
+            }
+            #p5-canvas {
+                height: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="main-content" class="main-content">
+        <div class="configurator">
+            <div class="config-section">
+                <h2>Network Configuration</h2>
+                <label for="layer-count">Number of Layers (2-5):</label>
+                <input type="number" id="layer-count" min="2" max="5" value="3">
+                <label for="neurons-per-layer">Neurons per Layer (5-50):</label>
+                <input type="number" id="neurons-per-layer" min="5" max="50" value="20">
+                <label for="model-type">Model Type:</label>
+                <select id="model-type">
+                    <option value="dense">Dense</option>
+                    <option value="lstm">LSTM</option>
+                    <option value="conv">Convolutional</option>
+                    <option value="rnn">RNN</option>
+                    <option value="gru">GRU</option>
+                    <option value="transformer">Transformer</option>
+                </select>
+                <label for="connection-density">Connection Density (0.1-1):</label>
+                <input type="number" id="connection-density" min="0.1" max="1" step="0.1" value="0.5">
+                <button onclick="updateNetwork()">Update Network</button>
+            </div>
+            <div class="config-section">
+                <h2>Visualization Settings</h2>
+                <label for="neuron-size">Neuron Size (5-20):</label>
+                <input type="number" id="neuron-size" min="5" max="20" value="8">
+                <label for="pulse-speed">Pulse Speed (0.01-0.1):</label>
+                <input type="number" id="pulse-speed" min="0.01" max="0.1" step="0.01" value="0.05">
+                <label for="color-scheme">Color Scheme:</label>
+                <select id="color-scheme">
+                    <option value="cyan">Cyan</option>
+                    <option value="green">Green</option>
+                    <option value="purple">Purple</option>
+                    <option value="red">Red</option>
+                    <option value="blue">Blue</option>
+                    <option value="yellow">Yellow</option>
+                    <option value="magenta">Magenta</option>
+                </select>
+                <button id="zoom-in">Zoom In Model</button>
+                <button id="zoom-out">Zoom Out Model</button>
+                <button id="move-left">Move Left</button>
+                <button id="move-right">Move Right</button>
+                <button id="move-up">Move Up</button>
+                <button id="move-down">Move Down</button>
+                <button onclick="updateVisualization()">Update Visualization</button>
+            </div>
+            <div class="config-section">
+                <h2>Certificate Configuration</h2>
+                <label for="manager-name">Manager Name:</label>
+                <input type="text" id="manager-name" placeholder="Enter your name" value="John Doe">
+                <label for="department">Department:</label>
+                <input type="text" id="department" placeholder="Enter department" value="Marketing">
+                <label for="position">Position:</label>
+                <input type="text" id="position" placeholder="Enter position" value="Manager">
+                <label for="certificate-format">Certificate Format:</label>
+                <select id="certificate-format">
+                    <option value="png">PNG</option>
+                    <option value="pdf">PDF</option>
+                    <option value="jpg">JPG</option>
+                </select>
+            </div>
+        </div>
+        <div class="neural-visualization">
+            <h1>Your Neural Network</h1>
+            <div class="canvas-container">
+                <div id="p5-canvas"></div>
+            </div>
+        </div>
+        <button id="certificate-button">Print Certificate</button>
+    </div>
+
+    <script>
+        let neurons = [];
+        let connections = [];
+        let layerConfigs = [];
+        let config = {
+            layerCount: 3,
+            neuronsPerLayer: 20,
+            modelType: 'dense',
+            connectionDensity: 0.5,
+            neuronSize: 8,
+            pulseSpeed: 0.05,
+            colorScheme: 'cyan',
+            managerName: 'John Doe',
+            department: 'Marketing',
+            position: 'Manager'
+        };
+        let scaleFactor = 1.0;
+        let offsetX = 0;
+        let offsetY = 0;
+        const moveStep = 50;
+
+        function setup() {
+            let canvas = createCanvas(1200, 800);
+            canvas.parent('p5-canvas');
+            frameRate(30);
+            initializeNetwork();
+            setInterval(updateActivations, 500);
+
+            // Visualization control listeners (now affecting both canvas and certificate)
+            document.getElementById('zoom-in').addEventListener('click', () => {
+                scaleFactor = Math.min(scaleFactor + 0.1, 1.5);
+                redraw();
+            });
+            document.getElementById('zoom-out').addEventListener('click', () => {
+                scaleFactor = Math.max(scaleFactor - 0.1, 0.3);
+                redraw();
+            });
+            document.getElementById('move-left').addEventListener('click', () => {
+                offsetX -= moveStep;
+                redraw();
+            });
+            document.getElementById('move-right').addEventListener('click', () => {
+                offsetX += moveStep;
+                redraw();
+            });
+            document.getElementById('move-up').addEventListener('click', () => {
+                offsetY -= moveStep;
+                redraw();
+            });
+            document.getElementById('move-down').addEventListener('click', () => {
+                offsetY += moveStep;
+                redraw();
+            });
+        }
+
+        function initializeNetwork() {
+            neurons = [];
+            connections = [];
+            layerConfigs = [];
+            const margin = 50;
+            const centerX = width / 2;
+            const centerY = height / 2;
+            const maxNeurons = config.neuronsPerLayer;
+            const maxLayers = config.layerCount;
+            const maxDimension = Math.min(width - 2 * margin, height - 2 * margin);
+            const maxRadius = maxDimension / 3;
+            const baseRadius = maxRadius / maxLayers;
+            const radiusStep = (maxRadius - baseRadius) / (maxLayers - 1 || 1);
+            const maxAngle = Math.atan2(maxNeurons * config.neuronSize / 2, maxRadius);
+
+            for (let l = 0; l < config.layerCount; l++) {
+                const layerNeurons = [];
+                const radius = baseRadius + l * radiusStep;
+                const neuronCount = l === config.layerCount - 1 ? getOutputNeuronCount() : config.neuronsPerLayer;
+                const angleStep = neuronCount > 1 ? (2 * maxAngle) / (neuronCount - 1) : 0;
+                for (let i = 0; i < neuronCount; i++) {
+                    const angle = neuronCount > 1 ? -maxAngle + i * angleStep : 0;
+                    const x = centerX + radius * Math.cos(angle);
+                    const y = centerY - radius * Math.sin(angle);
+                    layerNeurons.push({ x, y, activation: random(0, 1), id: `layer${l}-${i}`, pulseTime: 0 });
+                }
+                neurons.push(...layerNeurons);
+                layerConfigs.push(layerNeurons);
+            }
+
+            for (let i = 1; i < layerConfigs.length; i++) {
+                const fromLayer = layerConfigs[i - 1];
+                const toLayer = layerConfigs[i];
+                let adjustedDensity = config.connectionDensity;
+                if (config.modelType === 'transformer') adjustedDensity *= 1.5;
+                for (let fromNeuron of fromLayer) {
+                    for (let toNeuron of toLayer) {
+                        if (random() < adjustedDensity) {
+                            connections.push({
+                                from: fromNeuron,
+                                to: toNeuron,
+                                weight: random(0.5, 1),
+                                pulse: 0
+                            });
+                        }
+                    }
+                }
+            }
+        }
+
+        function getOutputNeuronCount() {
+            switch (config.modelType) {
+                case 'dense':
+                case 'rnn':
+                    return 1;
+                case 'lstm':
+                case 'gru':
+                    return 1;
+                case 'conv':
+                    return Math.min(5, config.neuronsPerLayer);
+                case 'transformer':
+                    return 5;
+                default:
+                    return 1;
+            }
+        }
+
+        function updateActivations() {
+            neurons.forEach(neuron => {
+                neuron.activation = random(0, 1);
+            });
+            connections.forEach(conn => {
+                const activationDiff = Math.abs(conn.from.activation) + Math.abs(conn.to.activation);
+                conn.pulse = activationDiff > 0.5 ? 1 : 0;
+            });
+        }
+
+        function draw() {
+            background(18, 18, 18);
+            translate(width / 2 + offsetX, height / 2 + offsetY);
+            scale(scaleFactor);
+            translate(-width / 2, -height / 2);
+
+            noFill();
+            stroke(0, 255, 255, 30);
+            strokeWeight(0.5 / scaleFactor);
+            for (let x = 50; x <= width - 50; x += 200) {
+                line(x, 50, x, height - 50);
+            }
+
+            connections.forEach(conn => {
+                conn.pulse = max(0, conn.pulse - config.pulseSpeed);
+            });
+
+            let strokeColor;
+            switch (config.colorScheme) {
+                case 'green':
+                    strokeColor = [0, 255, 0];
+                    break;
+                case 'purple':
+                    strokeColor = [128, 0, 128];
+                    break;
+                case 'red':
+                    strokeColor = [255, 0, 0];
+                    break;
+                case 'blue':
+                    strokeColor = [0, 0, 255];
+                    break;
+                case 'yellow':
+                    strokeColor = [255, 255, 0];
+                    break;
+                case 'magenta':
+                    strokeColor = [255, 0, 255];
+                    break;
+                default:
+                    strokeColor = [0, 255, 255];
+            }
+
+            strokeWeight(1 / scaleFactor);
+            connections.forEach(conn => {
+                const alpha = 50 * conn.weight + conn.pulse * 100;
+                if (alpha > 10) {
+                    stroke(strokeColor[0], strokeColor[1], strokeColor[2], alpha);
+                    if (conn.pulse > 0) strokeWeight(3 / scaleFactor);
+                    line(conn.from.x, conn.from.y, conn.to.x, conn.to.y);
+                    if (conn.pulse > 0) strokeWeight(1 / scaleFactor);
+                }
+            });
+
+            neurons.forEach(neuron => {
+                const visualActivation = Math.min(Math.max(Math.abs(neuron.activation), 0), 1);
+                const size = (config.neuronSize + 4 * visualActivation) / scaleFactor;
+                const alpha = 200 * visualActivation + 55;
+                if (visualActivation > 0.5) {
+                    drawingContext.shadowBlur = 20 / scaleFactor;
+                    drawingContext.shadowColor = `rgba(255, 255, 0, 0.8)`;
+                    fill(255, 255, 0, alpha);
+                    stroke(255, 255, 0, alpha);
+                    strokeWeight(2 / scaleFactor);
+                } else {
+                    drawingContext.shadowBlur = 0;
+                    fill(strokeColor[0], strokeColor[1], strokeColor[2], alpha);
+                    stroke(strokeColor[0], strokeColor[1], strokeColor[2], alpha);
+                    strokeWeight(1 / scaleFactor);
+                }
+                ellipse(neuron.x, neuron.y, size, size);
+            });
+            drawingContext.shadowBlur = 0;
+        }
+
+        function updateNetwork() {
+            config.layerCount = parseInt(document.getElementById('layer-count').value) || 3;
+            config.neuronsPerLayer = parseInt(document.getElementById('neurons-per-layer').value) || 20;
+            config.modelType = document.getElementById('model-type').value;
+            config.connectionDensity = parseFloat(document.getElementById('connection-density').value) || 0.5;
+            config.managerName = document.getElementById('manager-name').value || 'John Doe';
+            config.department = document.getElementById('department').value || 'Marketing';
+            config.position = document.getElementById('position').value || 'Manager';
+            initializeNetwork();
+            redraw();
+        }
+
+        function updateVisualization() {
+            config.neuronSize = parseInt(document.getElementById('neuron-size').value) || 8;
+            config.pulseSpeed = parseFloat(document.getElementById('pulse-speed').value) || 0.05;
+            config.colorScheme = document.getElementById('color-scheme').value;
+            redraw();
+        }
+
+        document.getElementById('certificate-button').addEventListener('click', () => {
+            const format = document.getElementById('certificate-format').value;
+            config.managerName = document.getElementById('manager-name').value || 'John Doe';
+            config.department = document.getElementById('department').value || 'Marketing';
+            config.position = document.getElementById('position').value || 'Manager';
+
+            const a4Width = 1122; // 297mm at 96 DPI
+            const a4Height = 793; // 210mm at 96 DPI (landscape)
+            const halfWidth = a4Width / 2;
+            const certCanvas = createGraphics(a4Width, a4Height);
+            certCanvas.background(18, 18, 18);
+
+            // Futuristic card frame
+            const frameWidth = 10;
+            certCanvas.drawingContext.shadowBlur = 10;
+            certCanvas.drawingContext.shadowColor = 'rgba(0, 255, 255, 0.7)';
+            certCanvas.stroke(0, 255, 255);
+            certCanvas.strokeWeight(2);
+            certCanvas.noFill();
+            certCanvas.rect(frameWidth, frameWidth, a4Width - 2 * frameWidth, a4Height - 2 * frameWidth, 5);
+            certCanvas.strokeWeight(1);
+            certCanvas.line(halfWidth, frameWidth, halfWidth, a4Height - frameWidth);
+            certCanvas.drawingContext.shadowBlur = 0;
+
+            // Left side: Neural network visualization (model) with dynamic scaling and positioning
+            certCanvas.push();
+            certCanvas.translate(halfWidth / 2 + offsetX, a4Height / 2 + offsetY);
+            certCanvas.scale(scaleFactor);
+            certCanvas.translate(-width / 2, -height / 2);
+
+            certCanvas.noFill();
+            certCanvas.stroke(0, 255, 255, 30);
+            certCanvas.strokeWeight(0.5);
+            for (let x = 50; x <= width - 50; x += 200) {
+                certCanvas.line(x, 50, x, height - 50);
+            }
+
+            let strokeColor;
+            switch (config.colorScheme) {
+                case 'green': strokeColor = [0, 255, 0]; break;
+                case 'purple': strokeColor = [128, 0, 128]; break;
+                case 'red': strokeColor = [255, 0, 0]; break;
+                case 'blue': strokeColor = [0, 0, 255]; break;
+                case 'yellow': strokeColor = [255, 255, 0]; break;
+                case 'magenta': strokeColor = [255, 0, 255]; break;
+                default: strokeColor = [0, 255, 255];
+            }
+
+            certCanvas.strokeWeight(1);
+            connections.forEach(conn => {
+                const alpha = 50 * conn.weight + conn.pulse * 100;
+                if (alpha > 10) {
+                    certCanvas.stroke(strokeColor[0], strokeColor[1], strokeColor[2], alpha);
+                    if (conn.pulse > 0) certCanvas.strokeWeight(3);
+                    certCanvas.line(conn.from.x, conn.from.y, conn.to.x, conn.to.y);
+                    if (conn.pulse > 0) certCanvas.strokeWeight(1);
+                }
+            });
+
+            neurons.forEach(neuron => {
+                const visualActivation = Math.min(Math.max(Math.abs(neuron.activation), 0), 1);
+                const size = (config.neuronSize + 4 * visualActivation);
+                const alpha = 200 * visualActivation + 55;
+                if (visualActivation > 0.5) {
+                    certCanvas.drawingContext.shadowBlur = 10;
+                    certCanvas.drawingContext.shadowColor = `rgba(255, 255, 0, 0.8)`;
+                    certCanvas.fill(255, 255, 0, alpha);
+                    certCanvas.stroke(255, 255, 0, alpha);
+                    certCanvas.strokeWeight(2);
+                } else {
+                    certCanvas.drawingContext.shadowBlur = 0;
+                    certCanvas.fill(strokeColor[0], strokeColor[1], strokeColor[2], alpha);
+                    certCanvas.stroke(strokeColor[0], strokeColor[1], strokeColor[2], alpha);
+                    certCanvas.strokeWeight(1);
+                }
+                certCanvas.ellipse(neuron.x, neuron.y, size, size);
+            });
+            certCanvas.drawingContext.shadowBlur = 0;
+            certCanvas.pop();
+
+            // Right side: User info
+            certCanvas.textFont('Roboto');
+            certCanvas.textSize(16);
+            certCanvas.fill(0, 255, 255);
+            certCanvas.noStroke();
+            certCanvas.textAlign(LEFT, TOP);
+            certCanvas.text(`Name: ${config.managerName}`, halfWidth + 20, 50);
+            certCanvas.text(`Department: ${config.department}`, halfWidth + 20, 80);
+            certCanvas.text(`Position: ${config.position}`, halfWidth + 20, 110);
+            certCanvas.text(`Date: 08:33 PM +03, July 03, 2025`, halfWidth + 20, 140);
+            certCanvas.text(`Model Type: ${config.modelType}`, halfWidth + 20, 170);
+
+            // Convert to HTML canvas
+            const htmlCanvas = document.createElement('canvas');
+            htmlCanvas.width = a4Width;
+            htmlCanvas.height = a4Height;
+            const ctx = htmlCanvas.getContext('2d');
+            ctx.drawImage(certCanvas.elt, 0, 0);
+
+            if (format === 'png' || format === 'jpg') {
+                const link = document.createElement('a');
+                link.download = `neural_card.${format}`;
+                link.href = htmlCanvas.toDataURL(`image/${format}`);
+                link.click();
+            } else if (format === 'pdf') {
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF({
+                    orientation: 'landscape',
+                    unit: 'px',
+                    format: [a4Width, a4Height]
+                });
+                pdf.addImage(htmlCanvas.toDataURL('image/png'), 'PNG', 0, 0, a4Width, a4Height);
+                pdf.save('neural_card.pdf');
+            }
+        });
+    </script>
+</body>
+</html>
